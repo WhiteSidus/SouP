@@ -4,10 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>VidimTo</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <style>
     :root{
-      --blue:#156db7;
-      --blue-dark:#0b5a9b;
+      --blue:#4081b7;
+      --blue-dark:#2262a2;
       --blue-soft:#6d9fcb;
       --bg:#ececec;
       --text:#1d1d1f;
@@ -18,9 +22,22 @@
       --shadow:0 18px 45px rgba(0,0,0,.15);
       --radius:18px;
     }
+
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
-    body{display:flex;align-items:center;justify-content:center;padding:24px}
+    html,body{
+      height:100%;
+      margin:0;
+      font-family:Arial,Helvetica,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    body{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
 
     .phone-shell{
       width:min(100%,390px);
@@ -46,92 +63,374 @@
     }
 
     .logo-badge{
-      width:24px;height:24px;border-radius:50%;
+      width:24px;
+      height:24px;
+      border-radius:50%;
       background:#fff1;
       border:1px solid #ffffff55;
-      display:grid;place-items:center;flex:none;
+      display:grid;
+      place-items:center;
+      flex:none;
       cursor:pointer;
     }
-    .logo-badge svg,.icon-btn svg{width:14px;height:14px;stroke:currentColor}
 
-    .search-pill{
-      flex:1;min-width:0;height:26px;border-radius:999px;
-      background:#ffffff22;border:1px solid #ffffff55;
-      display:flex;align-items:center;padding:0 10px;font-size:11px;color:#eef6ff;
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    .logo-badge svg,.icon-btn svg{
+      width:14px;
+      height:14px;
+      stroke:currentColor;
     }
 
-    .header-actions{display:flex;gap:8px;align-items:center}
-    .icon-btn{background:none;border:none;color:#fff;padding:0;cursor:pointer;display:grid;place-items:center}
+    .search-pill{
+      flex:1;
+      min-width:0;
+      height:26px;
+      border-radius:999px;
+      background:#ffffff22;
+      border:1px solid #ffffff55;
+      display:flex;
+      align-items:center;
+      padding:0 10px;
+      font-size:11px;
+      color:#eef6ff;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .header-actions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+
+    .icon-btn{
+      background:none;
+      border:none;
+      color:#fff;
+      padding:0;
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+    }
 
     .viewport{
-      position:absolute;inset:50px 0 10px 0;overflow:hidden;background:#fff;
+      position:absolute;
+      inset:50px 0 10px 0;
+      overflow:hidden;
+      background:#fff;
     }
 
     .screen{
-      position:absolute;inset:0;padding:18px 18px 28px;
-      opacity:0;transform:translateX(36px);pointer-events:none;
+      position:absolute;
+      inset:0;
+      padding:18px 18px 28px;
+      opacity:0;
+      transform:translateX(36px);
+      pointer-events:none;
       transition:transform .32s ease,opacity .32s ease;
-      overflow-y:auto;-webkit-overflow-scrolling:touch;
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
       background:#fff;
     }
-    .screen.active{opacity:1;transform:translateX(0);pointer-events:auto;z-index:2}
-    .screen.exit-left{opacity:0;transform:translateX(-36px)}
-    .screen.exit-right{opacity:0;transform:translateX(36px)}
 
-    .bottom-accent{position:absolute;left:0;right:0;bottom:0;height:10px;background:var(--blue)}
+    .screen.active{
+      opacity:1;
+      transform:translateX(0);
+      pointer-events:auto;
+      z-index:2;
+    }
 
-    .back-row{display:flex;align-items:center;gap:10px;margin-bottom:18px;font-size:14px}
-    .back-btn{background:none;border:none;padding:0;cursor:pointer;font-size:20px;line-height:1;color:#333}
-    .screen-title{font-size:16px;font-weight:500;margin:0}
+    .screen.exit-left{
+      opacity:0;
+      transform:translateX(-36px);
+    }
 
-    .hero-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px;padding-top:40px}
-    .hero-title{font-size:24px;font-weight:500;margin:0}
-    .hero-eye{width:136px;height:88px;display:block}
-    .hero-text{font-size:15px;line-height:1.25;margin:0}
-    .hero-sub{margin-top:22px;font-size:10px;color:#666}
+    .screen.exit-right{
+      opacity:0;
+      transform:translateX(36px);
+    }
+
+    .bottom-accent{
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+      height:10px;
+      background:var(--blue);
+    }
+
+    .back-row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:18px;
+      font-size:14px;
+    }
+
+    .back-btn{
+      background:none;
+      border:none;
+      padding:0;
+      cursor:pointer;
+      font-size:20px;
+      line-height:1;
+      color:#333;
+    }
+
+    .screen-title{
+      font-size:16px;
+      font-weight:500;
+      margin:0;
+    }
+
+    .hero-screen{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      gap:16px;
+      padding-top:40px;
+    }
+
+    .hero-title{
+      font-size:24px;
+      font-weight:500;
+      margin:0;
+    }
+
+    .hero-eye{
+      width:136px;
+      height:88px;
+      display:block;
+    }
+
+    .hero-text{
+      font-size:15px;
+      line-height:1.25;
+      margin:0;
+    }
+
+    .hero-sub{
+      margin-top:22px;
+      font-size:10px;
+      color:#666;
+    }
+
     .primary-btn,.secondary-btn,.danger-btn{
-      border:none;border-radius:4px;padding:9px 16px;font-size:13px;cursor:pointer;
+      border:none;
+      border-radius:4px;
+      padding:9px 16px;
+      font-size:13px;
+      cursor:pointer;
       box-shadow:0 2px 0 rgba(0,0,0,.12);
     }
-    .primary-btn{background:linear-gradient(#74a8d5,#4a8fc7);color:#fff}
-    .secondary-btn{background:#e9eef3;color:#555}
-    .danger-btn{width:100%;height:36px;background:var(--danger);color:#fff;margin-top:18px}
 
-    .form-stack{display:flex;flex-direction:column;gap:12px}
-    .field-label{font-size:11px;margin-bottom:5px;color:#333}
+    .primary-btn{
+      background:linear-gradient(#74a8d5,#4a8fc7);
+      color:#fff;
+    }
+
+    .secondary-btn{
+      background:#e9eef3;
+      color:#555;
+    }
+
+    .danger-btn{
+      width:100%;
+      height:36px;
+      background:var(--danger);
+      color:#fff;
+      margin-top:18px;
+    }
+
+    .form-stack{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .field-label{
+      font-size:11px;
+      margin-bottom:5px;
+      color:#333;
+    }
+
     .input,.textarea,.select{
-      width:100%;background:#dddddd;border:none;border-radius:2px;padding:8px 9px;font-size:12px;color:#222;
+      width:100%;
+      background:#dddddd;
+      border:none;
+      border-radius:2px;
+      padding:8px 9px;
+      font-size:12px;
+      color:#222;
     }
-    .input,.select{height:30px}
-    .textarea{min-height:74px;resize:none;padding-top:8px}
-    .upload-row{display:flex;align-items:center;gap:10px;margin-top:4px}
+
+    .input,.select{
+      height:30px;
+    }
+
+    .textarea{
+      min-height:74px;
+      resize:none;
+      padding-top:8px;
+    }
+
+    .upload-row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-top:4px;
+      flex-wrap:wrap;
+    }
+
     .upload-box{
-      width:34px;height:26px;background:#d9d9d9;border-radius:2px;display:grid;place-items:center;color:#888;font-size:16px;flex:none;
+      width:34px;
+      height:26px;
+      background:#d9d9d9;
+      border-radius:2px;
+      display:grid;
+      place-items:center;
+      color:#888;
+      font-size:16px;
+      flex:none;
     }
-    .upload-text{font-size:10px;color:#555}
 
-    .auth-links{margin-top:18px;font-size:10px;color:#666;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-    .link-btn{border:none;background:none;color:#2e6da6;padding:0;cursor:pointer;font-size:10px;text-decoration:underline}
-    .auth-submit{margin-top:10px;width:max-content}
+    .upload-text{
+      font-size:10px;
+      color:#555;
+    }
 
-    .reports-wrap{padding-top:22px}
+    .auth-links{
+      margin-top:18px;
+      font-size:10px;
+      color:#666;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .link-btn{
+      border:none;
+      background:none;
+      color:#2e6da6;
+      padding:0;
+      cursor:pointer;
+      font-size:10px;
+      text-decoration:underline;
+    }
+
+    .auth-submit{
+      margin-top:10px;
+      width:max-content;
+    }
+
+    .reports-wrap{
+      padding-top:22px;
+    }
+
     .report-preview{
-      width:100%;height:110px;background:#d8d8d8;border-radius:2px;margin-bottom:12px;
-      background-size:cover;background-position:center;
+      width:100%;
+      height:110px;
+      background:#d8d8d8;
+      border-radius:2px;
+      margin-bottom:12px;
+      background-size:cover;
+      background-position:center;
     }
-    .report-caption{font-size:10px;color:#444;margin-bottom:8px}
-    .report-card{padding:12px 0;border-bottom:1px solid #eee}
-    .report-card h3{margin:0 0 6px;font-size:13px}
-    .report-meta{font-size:10px;color:#666;display:flex;justify-content:space-between;gap:8px}
-    .status{font-weight:700;color:#7a5a00}
 
-    .notice{margin-top:12px;font-size:11px;color:#2c6b2f;min-height:14px}
-    .error{color:#8a1f1f}
+    .report-caption{
+      font-size:10px;
+      color:#444;
+      margin-bottom:8px;
+    }
+
+    .report-card{
+      padding:12px 0;
+      border-bottom:1px solid #eee;
+    }
+
+    .report-card h3{
+      margin:0 0 6px;
+      font-size:13px;
+    }
+
+    .report-meta{
+      font-size:10px;
+      color:#666;
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+    }
+
+    .status{
+      font-weight:700;
+      color:#7a5a00;
+    }
+
+    .notice{
+      margin-top:12px;
+      font-size:11px;
+      color:#2c6b2f;
+      min-height:14px;
+    }
+
+    .error{
+      color:#8a1f1f;
+    }
+
+    .map-screen{
+      padding:14px 14px 22px;
+    }
+
+    .map-form-row{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin-bottom:12px;
+    }
+
+    .map-box{
+      width:100%;
+      height:320px;
+      border-radius:6px;
+      overflow:hidden;
+      border:1px solid #d7d7d7;
+      background:#f0f0f0;
+    }
+
+    #map{
+      width:100%;
+      height:100%;
+      z-index:1;
+    }
+
+    .map-actions{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .map-actions .primary-btn,
+    .map-actions .secondary-btn{
+      flex:1;
+    }
 
     @media (max-width:430px){
-      body{padding:0;background:#fff}
-      .phone-shell{width:100%;height:100dvh;border-radius:0;box-shadow:none;border:none}
+      body{
+        padding:0;
+        background:#fff;
+      }
+
+      .phone-shell{
+        width:100%;
+        height:100dvh;
+        border-radius:0;
+        box-shadow:none;
+        border:none;
+      }
     }
   </style>
 </head>
@@ -139,18 +438,34 @@
   <div class="phone-shell">
     <header class="app-header">
       <button class="logo-badge" data-screen-target="home" aria-label="Domů">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M3 11.5L12 4l9 7.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10.5V20h12v-9.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M3 11.5L12 4l9 7.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M6 10.5V20h12v-9.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
       </button>
-      <div class="search-pill">Search problems...</div>
+
+      <div class="search-pill">Hledat problemy...</div>
+
       <div class="header-actions">
-        <button class="icon-btn" aria-label="Hledat">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6" stroke-width="2"/><path d="M20 20l-4.2-4.2" stroke-width="2" stroke-linecap="round"/></svg>
+        <button class="icon-btn" data-screen-target="mapa" aria-label="Mapa">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z" stroke-width="2"/>
+            <circle cx="12" cy="10" r="2.5" stroke-width="2"/>
+          </svg>
         </button>
+
         <button class="icon-btn" data-screen-target="login" aria-label="Profil">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke-width="2"/><path d="M4 20c1.8-3.5 5-5 8-5s6.2 1.5 8 5" stroke-width="2" stroke-linecap="round"/></svg>
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8" r="4" stroke-width="2"/>
+            <path d="M4 20c1.8-3.5 5-5 8-5s6.2 1.5 8 5" stroke-width="2" stroke-linecap="round"/>
+          </svg>
         </button>
+
         <button class="icon-btn" data-screen-target="home" aria-label="Domů 2">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M3 11.5L12 4l9 7.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10.5V20h12v-9.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M3 11.5L12 4l9 7.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M6 10.5V20h12v-9.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </button>
       </div>
     </header>
@@ -158,13 +473,8 @@
     <div class="viewport">
       <section class="screen active" id="home" data-index="0">
         <div class="hero-screen">
-          <h1 class="hero-title">VidimTo</h1>
-          <svg class="hero-eye" viewBox="0 0 180 120" aria-hidden="true">
-            <path d="M12 60C34 26 60 12 90 12s56 14 78 48c-22 34-48 48-78 48S34 94 12 60Z" fill="none" stroke="#111" stroke-width="5"/>
-            <path d="M78 24h24v58H78z" fill="#111"/>
-            <path d="M66 82h48L96 36 84 48 74 82z" fill="#111"/>
-            <path d="M52 82h76" stroke="#111" stroke-width="5" stroke-linecap="round"/>
-          </svg>
+          <h1 class="hero-title">VidímTo</h1>
+          <img src="VidimTo.png" alt="Logo VidímTo" class="hero-eye">
           <p class="hero-text">Vy nám nahlásíte<br>My vyřešíme</p>
           <p class="hero-sub">Našli jste poškozený majetek?</p>
           <button class="primary-btn" data-screen-target="report">Nahlásit</button>
@@ -182,14 +492,26 @@
             <label class="field-label" for="reportPlace">Kde?</label>
             <input class="input" id="reportPlace" name="place" type="text" required>
           </div>
+
           <div>
             <label class="field-label" for="reportTitle">Název závady</label>
             <input class="input" id="reportTitle" name="title" type="text" required>
           </div>
+
           <div>
             <label class="field-label" for="reportDescription">Popište ji / kam vyfotíte?</label>
             <textarea class="textarea" id="reportDescription" name="description" required></textarea>
           </div>
+
+          <div>
+            <label class="field-label" for="reportCoords">Souřadnice</label>
+            <input class="input" id="reportCoords" name="coords" type="text" placeholder="Např. 49.7475, 13.3778" readonly>
+          </div>
+
+          <div class="upload-row">
+            <button class="secondary-btn" type="button" data-screen-target="mapa">Vybrat na mapě</button>
+          </div>
+
           <div>
             <div class="field-label">Vyfoťte?</div>
             <div class="upload-row">
@@ -198,6 +520,7 @@
               <input id="reportPhoto" type="file" accept="image/*" hidden>
             </div>
           </div>
+
           <button class="primary-btn auth-submit" type="submit">Odeslat</button>
           <div id="reportNotice" class="notice"></div>
         </form>
@@ -205,14 +528,44 @@
 
       <section class="screen" id="list" data-index="2">
         <div class="reports-wrap">
-          <div id="heroPreview" class="report-preview" style="background-image:url('images/report1.png')"></div>
+          <div id="heroPreview" class="report-preview"></div>
           <div class="report-caption">Nahlášené problémy</div>
           <div id="reportsList"></div>
           <button class="danger-btn" data-screen-target="report">Nahlásit další</button>
         </div>
       </section>
 
-      <section class="screen" id="login" data-index="3">
+      <section class="screen map-screen" id="mapa" data-index="3">
+        <div class="back-row">
+          <button class="back-btn" data-screen-target="report" aria-label="Zpět">←</button>
+          <p class="screen-title">Vybrat místo na mapě</p>
+        </div>
+
+        <div class="map-form-row">
+          <div>
+            <label class="field-label" for="addressInput">Adresa / Název</label>
+            <input id="addressInput" class="input" type="text" placeholder="Např. Náměstí Republiky">
+          </div>
+
+          <div>
+            <label class="field-label" for="coords">Souřadnice</label>
+            <input id="coords" class="input" type="text" placeholder="49.7475, 13.3778">
+          </div>
+        </div>
+
+        <div class="map-box">
+          <div id="map"></div>
+        </div>
+
+        <div class="map-actions">
+          <button id="usePointBtn" class="secondary-btn" type="button" disabled>Použít bod</button>
+          <button id="saveBtn" class="primary-btn" type="button" disabled>Uložit bod</button>
+        </div>
+
+        <div id="mapNotice" class="notice"></div>
+      </section>
+
+      <section class="screen" id="login" data-index="4">
         <div class="back-row">
           <button class="back-btn" data-screen-target="home" aria-label="Zpět">←</button>
           <p class="screen-title">Přihlášení:</p>
@@ -223,20 +576,24 @@
             <label class="field-label" for="loginEmail">E-mail:</label>
             <input class="input" id="loginEmail" name="email" type="email" required>
           </div>
+
           <div>
             <label class="field-label" for="loginPassword">Heslo:</label>
             <input class="input" id="loginPassword" name="password" type="password" required>
           </div>
+
           <button class="primary-btn auth-submit" type="submit">Přihlásit</button>
+
           <div class="auth-links">
             <span>Nemáte přihlášení?</span>
             <button class="link-btn" type="button" data-screen-target="register">Registrovat</button>
           </div>
+
           <div id="loginNotice" class="notice"></div>
         </form>
       </section>
 
-      <section class="screen" id="register" data-index="4">
+      <section class="screen" id="register" data-index="5">
         <div class="back-row">
           <button class="back-btn" data-screen-target="login" aria-label="Zpět">←</button>
           <p class="screen-title">Registrace:</p>
@@ -247,18 +604,22 @@
             <label class="field-label" for="registerName">Uživatelské jméno:</label>
             <input class="input" id="registerName" name="name" type="text" required>
           </div>
+
           <div>
             <label class="field-label" for="registerEmail">E-mail:</label>
             <input class="input" id="registerEmail" name="email" type="email" required>
           </div>
+
           <div>
             <label class="field-label" for="registerPassword">Heslo:</label>
             <input class="input" id="registerPassword" name="password" type="password" required>
           </div>
+
           <div>
             <label class="field-label" for="registerPasswordAgain">Zopakujte heslo:</label>
             <input class="input" id="registerPasswordAgain" name="passwordAgain" type="password" required>
           </div>
+
           <button class="primary-btn auth-submit" type="submit">Registrovat</button>
           <div id="registerNotice" class="notice"></div>
         </form>
@@ -272,6 +633,9 @@
     const screens = [...document.querySelectorAll('.screen')];
     let currentScreen = document.querySelector('.screen.active');
     let animating = false;
+    let mapInitialized = false;
+    let map;
+    let tempMarker = null;
 
     function openScreen(id){
       const next = document.getElementById(id);
@@ -301,6 +665,11 @@
         next.style.opacity = '';
         currentScreen = next;
         animating = false;
+
+        if(id === 'mapa'){
+          initMap();
+          setTimeout(() => map.invalidateSize(), 50);
+        }
       }, 320);
     }
 
@@ -312,9 +681,9 @@
     });
 
     const seedReports = [
-      { title:'Nepořádek u chodníku', place:'Slaný', status:'Nové', date:'12. 3. 2026' },
-      { title:'Rozbitá lavička', place:'Centrum', status:'V řešení', date:'12. 3. 2026' },
-      { title:'Poškozená lampa', place:'Park', status:'Přijato', date:'11. 3. 2026' }
+      { title:'Nepořádek u chodníku', place:'Slaný', status:'Nové', date:'12. 3. 2026', coords:'' },
+      { title:'Rozbitá lavička', place:'Centrum', status:'V řešení', date:'12. 3. 2026', coords:'' },
+      { title:'Poškozená lampa', place:'Park', status:'Přijato', date:'11. 3. 2026', coords:'' }
     ];
 
     function getReports(){
@@ -324,10 +693,19 @@
       return seedReports;
     }
 
+    function getSavedMapPoints(){
+      return JSON.parse(localStorage.getItem('vidimto_map_points') || '[]');
+    }
+
+    function saveMapPoints(points){
+      localStorage.setItem('vidimto_map_points', JSON.stringify(points));
+    }
+
     function renderReports(){
       const wrap = document.getElementById('reportsList');
       const reports = getReports();
       wrap.innerHTML = '';
+
       reports.forEach((report, index) => {
         const item = document.createElement('article');
         item.className = 'report-card';
@@ -341,6 +719,7 @@
             <span>${report.date}</span>
             <span>#${String(index + 1).padStart(3,'0')}</span>
           </div>
+          ${report.coords ? `<div class="report-meta" style="margin-top:4px;"><span>${report.coords}</span></div>` : ''}
         `;
         wrap.appendChild(item);
       });
@@ -352,8 +731,111 @@
       el.classList.toggle('error', isError);
     }
 
+    function placeTempMarker(lat, lng){
+      if(tempMarker){
+        tempMarker.setLatLng([lat, lng]);
+      } else {
+        tempMarker = L.marker([lat, lng]).addTo(map);
+      }
+
+      map.panTo([lat, lng]);
+      document.getElementById('saveBtn').disabled = false;
+      document.getElementById('usePointBtn').disabled = false;
+    }
+
+    function initMap(){
+      if(mapInitialized) return;
+
+      const bounds = [
+        [49.70, 13.30],
+        [49.80, 13.45]
+      ];
+
+      map = L.map('map', {
+        maxBounds: bounds,
+        maxBoundsViscosity: 1.0,
+        minZoom: 13,
+        maxZoom: 18
+      }).setView([49.7475, 13.3778], 13);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+
+      const savedPoints = getSavedMapPoints();
+      savedPoints.forEach(p => {
+        const m = L.marker([p.lat, p.lng]).addTo(map);
+        if(p.address){
+          m.bindPopup('<b>' + p.address + '</b>');
+        }
+      });
+
+      map.on('click', function(e){
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
+        document.getElementById('coords').value = lat.toFixed(6) + ', ' + lng.toFixed(6);
+        placeTempMarker(lat, lng);
+      });
+
+      document.getElementById('coords').addEventListener('change', function(){
+        const val = this.value.trim();
+        if(!val) return;
+
+        const parts = val.split(',');
+        if(parts.length === 2){
+          const lat = parseFloat(parts[0].trim());
+          const lng = parseFloat(parts[1].trim());
+          if(!isNaN(lat) && !isNaN(lng)){
+            placeTempMarker(lat, lng);
+          }
+        }
+      });
+
+      document.getElementById('saveBtn').addEventListener('click', function(){
+        if(!tempMarker) return;
+
+        const lat = tempMarker.getLatLng().lat;
+        const lng = tempMarker.getLatLng().lng;
+        const address = document.getElementById('addressInput').value.trim();
+
+        const points = getSavedMapPoints();
+        points.push({ lat, lng, address });
+        saveMapPoints(points);
+
+        if(address){
+          tempMarker.bindPopup('<b>' + address + '</b>');
+        }
+
+        tempMarker = null;
+        this.disabled = true;
+        document.getElementById('usePointBtn').disabled = true;
+        document.getElementById('coords').value = '';
+        document.getElementById('addressInput').value = '';
+        showNotice('mapNotice', 'Bod byl úspěšně uložen.');
+      });
+
+      document.getElementById('usePointBtn').addEventListener('click', function(){
+        if(!tempMarker) return;
+
+        const lat = tempMarker.getLatLng().lat;
+        const lng = tempMarker.getLatLng().lng;
+        document.getElementById('reportCoords').value = lat.toFixed(6) + ', ' + lng.toFixed(6);
+
+        const address = document.getElementById('addressInput').value.trim();
+        if(address && !document.getElementById('reportPlace').value.trim()){
+          document.getElementById('reportPlace').value = address;
+        }
+
+        showNotice('reportNotice', 'Souřadnice byly vloženy z mapy.');
+        openScreen('report');
+      });
+
+      mapInitialized = true;
+    }
+
     document.getElementById('registerForm').addEventListener('submit', (e) => {
       e.preventDefault();
+
       const name = registerName.value.trim();
       const email = registerEmail.value.trim();
       const password = registerPassword.value;
@@ -363,10 +845,12 @@
         showNotice('registerNotice', 'Vyplňte všechna pole.', true);
         return;
       }
+
       if(password !== passwordAgain){
         showNotice('registerNotice', 'Hesla se neshodují.', true);
         return;
       }
+
       if(password.length < 4){
         showNotice('registerNotice', 'Heslo je příliš krátké.', true);
         return;
@@ -375,11 +859,13 @@
       localStorage.setItem('vidimto_user', JSON.stringify({ name, email, password }));
       showNotice('registerNotice', 'Registrace proběhla úspěšně.');
       e.target.reset();
+
       setTimeout(() => openScreen('login'), 500);
     });
 
     document.getElementById('loginForm').addEventListener('submit', (e) => {
       e.preventDefault();
+
       const email = loginEmail.value.trim();
       const password = loginPassword.value;
       const user = JSON.parse(localStorage.getItem('vidimto_user') || 'null');
@@ -388,6 +874,7 @@
         showNotice('loginNotice', 'Nejdřív se registrujte.', true);
         return;
       }
+
       if(user.email !== email || user.password !== password){
         showNotice('loginNotice', 'Špatný e-mail nebo heslo.', true);
         return;
@@ -396,14 +883,17 @@
       localStorage.setItem('vidimto_logged_in', '1');
       showNotice('loginNotice', `Vítejte, ${user.name}.`);
       e.target.reset();
+
       setTimeout(() => openScreen('home'), 500);
     });
 
     document.getElementById('reportForm').addEventListener('submit', (e) => {
       e.preventDefault();
+
       const place = reportPlace.value.trim();
       const title = reportTitle.value.trim();
       const description = reportDescription.value.trim();
+      const coords = reportCoords.value.trim();
 
       if(!place || !title || !description){
         showNotice('reportNotice', 'Doplňte celé hlášení.', true);
@@ -415,12 +905,15 @@
         title,
         place,
         status:'Nové',
-        date:new Date().toLocaleDateString('cs-CZ')
+        date:new Date().toLocaleDateString('cs-CZ'),
+        coords
       });
+
       localStorage.setItem('vidimto_reports', JSON.stringify(reports));
       renderReports();
       showNotice('reportNotice', 'Hlášení bylo odesláno.');
       e.target.reset();
+
       setTimeout(() => openScreen('list'), 500);
     });
 
