@@ -7,6 +7,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Získání textových dat odeslaných formulářem (s ošetřením, aby ignoroval prázdná data, pokud by nebyla)
     $adresa = trim($_POST['Adresa'] ?? '');
     $popis = trim($_POST['Popis'] ?? '');
+    $lat = $_POST['lat'] ?? null;
+    $lng = $_POST['lng'] ?? null;
 
     // Zpracování nahraného souboru - z pole $_FILES ('Soubor' odpovídá parametru name="")
     $soubor = $_FILES['Soubor'] ?? null;
@@ -40,13 +42,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     // 2. Příprava SQL dotazu pro vložení dat
-    $stmt = $pdo->prepare("INSERT INTO nahlaseni (fotka_cesta, adresa, popis) VALUES (:fotka, :adresa, :popis)");
+    $stmt = $pdo->prepare("INSERT INTO nahlaseni (fotka_cesta, adresa, popis, lat, lng) VALUES (:fotka, :adresa, :popis, :lat, :lng)");
 
     // 3. Provedení dotazu s našimi daty (zabrání to i tzv. SQL injection)
     $stmt->execute([
         ':fotka' => $cilovaCesta,
         ':adresa' => $adresa,
-        ':popis' => $popis
+        ':popis' => $popis,
+        ':lat' => $lat,
+        ':lng' => $lng
     ]);
 
     $zprava .= " Data byla úspěšně uložena do databáze.";
