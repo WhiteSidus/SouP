@@ -863,16 +863,31 @@
       setTimeout(() => openScreen('login'), 500);
     });
 
-    document.getElementById('loginForm').addEventListener('submit', (e) => {
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const email = loginEmail.value.trim();
       const password = loginPassword.value;
-      const user = JSON.parse(localStorage.getItem('vidimto_user') || 'null');
 
-      if(!user){
-        showNotice('loginNotice', 'Nejdřív se registrujte.', true);
-        return;
+      showNotice('loginNotice', 'Ověřuji...', false);
+      
+      try {
+        const res = await fetch('api.php?action=login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ email, password })
+        });
+        const json = await res.json();
+        
+        if (json.status === 'success') {
+          showNotice('loginNotice', json.message);
+          e.target.reset();
+          setTimeout(() => openScreen('home'), 800);
+        } else {
+          showNotice('loginNotice', json.message, true);
+        }
+      } catch (err) {
+        showNotice('loginNotice', 'Chyba připojení k serveru.', true);
       }
 
       if(user.email !== email || user.password !== password){
@@ -887,7 +902,7 @@
       setTimeout(() => openScreen('home'), 500);
     });
 
-    document.getElementById('reportForm').addEventListener('submit', (e) => {
+    document.getElementById('reportForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const place = reportPlace.value.trim();
