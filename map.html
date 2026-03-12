@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Plzně</title>
+
+    <link rel="stylesheet" href="CSS/output.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        #map {
+            height: 500px;
+            width: 100%;
+            z-index: 1;
+        }
+    </style>
+</head>
+
+<body class="m-0 bg-slate-50 font-sans min-h-screen text-slate-800">
+
+    <!-- Top Navigation Menu -->
+    <nav class="w-full bg-blue-600 shadow-md flex justify-center py-4 mb-8">
+        <a href="#" class="text-white no-underline mx-6 text-sm md:text-base font-semibold transition-all duration-300 uppercase tracking-widest hover:text-blue-200">Domů</a>
+        <a href="#" class="text-white no-underline mx-6 text-sm md:text-base font-semibold transition-all duration-300 uppercase tracking-widest hover:text-blue-200">Služby</a>
+        <a href="#" class="text-white no-underline mx-6 text-sm md:text-base font-semibold transition-all duration-300 uppercase tracking-widest hover:text-blue-200">O nás</a>
+        <a href="#" class="text-white no-underline mx-6 text-sm md:text-base font-semibold transition-all duration-300 uppercase tracking-widest hover:text-blue-200">Kontakt</a>
+    </nav>
+
+    <main class="max-w-4xl mx-auto px-4 pb-12">
+        <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl border border-slate-100 mb-8">
+            <h1 class="text-2xl md:text-3xl font-bold text-blue-900 mb-6 text-center">Interaktivní mapa</h1>
+            
+            <div class="flex flex-col md:flex-row gap-4 mb-6">
+                <!-- Adresa Input -->
+                <div class="flex-1 w-full relative">
+                    <label class="block text-sm font-semibold text-slate-600 mb-2">Adresa / Název</label>
+                    <input id="addressInput" type="text" placeholder="Např. Náměstí Republiky"
+                        class="w-full p-3 border-2 border-slate-200 outline-none rounded-xl bg-slate-50 text-slate-700 placeholder-slate-400 focus:bg-white focus:border-blue-500 transition-all duration-300">
+                </div>
+
+                <!-- Souřadnice Input -->
+                <div class="flex-1 w-full relative">
+                    <label class="block text-sm font-semibold text-slate-600 mb-2">Souřadnice <span class="text-slate-400 font-normal text-xs ml-1">(klikněte na mapu)</span></label>
+                    <input id="coords" type="text" placeholder="49.7475, 13.3778"
+                        class="w-full p-3 border-2 border-slate-200 outline-none rounded-xl bg-slate-50 text-slate-700 placeholder-slate-400 focus:bg-white focus:border-blue-500 transition-all duration-300">
+                </div>
+            </div>
+
+            <!-- Map Container -->
+            <div class="rounded-xl overflow-hidden shadow-inner border border-slate-200 bg-slate-100">
+                <div id="map"></div>
+            </div>
+
+            <div class="mt-6 flex justify-end">
+                <button id="saveBtn" disabled 
+                    class="py-3 px-8 rounded-xl bg-blue-600 text-white font-bold text-lg cursor-pointer transition-all duration-300 shadow-lg shadow-blue-600/30 hover:bg-blue-700 hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none">
+                    Uložit vybraný bod
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+
+        var bounds = [
+            [49.70, 13.30],
+            [49.80, 13.45]
+        ];
+
+        var map = L.map('map', {
+            maxBounds: bounds,
+            maxBoundsViscosity: 1.0,
+            minZoom: 13,
+            maxZoom: 18
+        }).setView([49.7475, 13.3778], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        var tempMarker = null;
+
+        // Pomocná funkce pro vložení/přesun dočasného markeru
+        function placeTempMarker(lat, lng) {
+            if (tempMarker) {
+                tempMarker.setLatLng([lat, lng]);
+            } else {
+                tempMarker = L.marker([lat, lng]).addTo(map);
+            }
+            map.panTo([lat, lng]);
+            document.getElementById("saveBtn").disabled = false;
+        }
+
+        // načtení uložených bodů
+        fetch("points.json")
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    data.forEach(p => {
+                        let m = L.marker([p.lat, p.lng]).addTo(map);
+                        if (p.address) {
+                            m.bindPopup("<b>" + p.address + "</b>");
+                        }
+                    });
+                }
+            });
+
+        // kliknutí na mapu (přidání dočasného bodu)
+        map.on("click", function (e) {
+            let lat = e.latlng.lat;
+            let lng = e.latlng.lng;
+
+            document.getElementById("coords").value = lat.toFixed(6) + ", " + lng.toFixed(6);
+            placeTempMarker(lat, lng);
+        });
+
+        // Vepsání souřadnic přímo do políčka
+        document.getElementById("coords").addEventListener("change", function (e) {
+            let val = this.value.trim();
+            if (!val) return;
+            let parts = val.split(",");
+            if (parts.length === 2) {
+                let lat = parseFloat(parts[0].trim());
+                let lng = parseFloat(parts[1].trim());
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    placeTempMarker(lat, lng);
+                }
+            }
+        });
+
+        // Uložení bodu
+        document.getElementById("saveBtn").addEventListener("click", function () {
+            if (!tempMarker) return;
+
+            let lat = tempMarker.getLatLng().lat;
+            let lng = tempMarker.getLatLng().lng;
+            let address = document.getElementById("addressInput").value.trim();
+
+            fetch("save_point.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: "lat=" + lat + "&lng=" + lng + "&address=" + encodeURIComponent(address)
+            })
+                .then(res => res.json())
+                .then(resData => {
+                    if (resData.status === "success") {
+                        // Dočasný marker se stává trvalým.
+                        if (address) {
+                            tempMarker.bindPopup("<b>" + address + "</b>");
+                        }
+                        tempMarker = null;
+                        this.disabled = true;
+                        document.getElementById("coords").value = "";
+                        document.getElementById("addressInput").value = "";
+                        alert("Bod byl úspěšně uložen!");
+                    }
+                })
+                .catch(err => {
+                    console.error("Chyba při ukládání na server:", err);
+                    alert("Došlo k chybě při ukládání.");
+                });
+        });
+
+    </script>
+
+</body>
+
+</html>
