@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>VidimTo</title>
+  <style>
+    :root{
+      --blue:#156db7;
+      --blue-dark:#0b5a9b;
+      --blue-soft:#6d9fcb;
+      --bg:#ececec;
+      --text:#1d1d1f;
+      --muted:#8a8a8a;
+      --line:#d8d8d8;
+      --danger:#5a0f12;
+      --white:#fff;
+      --shadow:0 18px 45px rgba(0,0,0,.15);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+    body{display:flex;align-items:center;justify-content:center;padding:24px}
+
+    .phone-shell{
+      width:min(100%,390px);
+      height:min(844px,100dvh - 20px);
+      background:#f8f8f8;
+      border-radius:28px;
+      overflow:hidden;
+      box-shadow:var(--shadow);
+      position:relative;
+      border:1px solid rgba(0,0,0,.05);
+    }
+
+    .app-header{
+      height:50px;
+      background:var(--blue);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:0 10px;
+      position:relative;
+      z-index:20;
+    }
+
+    .logo-badge{
+      width:24px;height:24px;border-radius:50%;
+      background:#fff1;
+      border:1px solid #ffffff55;
+      display:grid;place-items:center;flex:none;
+      cursor:pointer;
+    }
+    .logo-badge svg,.icon-btn svg{width:14px;height:14px;stroke:currentColor}
+
+    .search-pill{
+      flex:1;min-width:0;height:26px;border-radius:999px;
+      background:#ffffff22;border:1px solid #ffffff55;
+      display:flex;align-items:center;padding:0 10px;font-size:11px;color:#eef6ff;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+
+    .header-actions{display:flex;gap:8px;align-items:center}
+    .icon-btn{background:none;border:none;color:#fff;padding:0;cursor:pointer;display:grid;place-items:center}
+
+    .viewport{
+      position:absolute;inset:50px 0 10px 0;overflow:hidden;background:#fff;
+    }
+
+    .screen{
+      position:absolute;inset:0;padding:18px 18px 28px;
+      opacity:0;transform:translateX(36px);pointer-events:none;
+      transition:transform .32s ease,opacity .32s ease;
+      overflow-y:auto;-webkit-overflow-scrolling:touch;
+      background:#fff;
+    }
+    .screen.active{opacity:1;transform:translateX(0);pointer-events:auto;z-index:2}
+    .screen.exit-left{opacity:0;transform:translateX(-36px)}
+    .screen.exit-right{opacity:0;transform:translateX(36px)}
+
+    .bottom-accent{position:absolute;left:0;right:0;bottom:0;height:10px;background:var(--blue)}
+
+    .back-row{display:flex;align-items:center;gap:10px;margin-bottom:18px;font-size:14px}
+    .back-btn{background:none;border:none;padding:0;cursor:pointer;font-size:20px;line-height:1;color:#333}
+    .screen-title{font-size:16px;font-weight:500;margin:0}
+
+    .hero-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px;padding-top:40px}
+    .hero-title{font-size:24px;font-weight:500;margin:0}
+    .hero-eye{width:136px;height:88px;display:block}
+    .hero-text{font-size:15px;line-height:1.25;margin:0}
+    .hero-sub{margin-top:22px;font-size:10px;color:#666}
+    .primary-btn,.secondary-btn,.danger-btn{
+      border:none;border-radius:4px;padding:9px 16px;font-size:13px;cursor:pointer;
+      box-shadow:0 2px 0 rgba(0,0,0,.12);
+    }
+    .primary-btn{background:linear-gradient(#74a8d5,#4a8fc7);color:#fff}
+    .secondary-btn{background:#e9eef3;color:#555}
+    .danger-btn{width:100%;height:36px;background:var(--danger);color:#fff;margin-top:18px}
+
+    .form-stack{display:flex;flex-direction:column;gap:12px}
+    .field-label{font-size:11px;margin-bottom:5px;color:#333}
+    .input,.textarea,.select{
+      width:100%;background:#dddddd;border:none;border-radius:2px;padding:8px 9px;font-size:12px;color:#222;
+    }
+    .input,.select{height:30px}
+    .textarea{min-height:74px;resize:none;padding-top:8px}
+    .upload-row{display:flex;align-items:center;gap:10px;margin-top:4px}
+    .upload-box{
+      width:34px;height:26px;background:#d9d9d9;border-radius:2px;display:grid;place-items:center;color:#888;font-size:16px;flex:none;
+    }
+    .upload-text{font-size:10px;color:#555}
+
+    .auth-links{margin-top:18px;font-size:10px;color:#666;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .link-btn{border:none;background:none;color:#2e6da6;padding:0;cursor:pointer;font-size:10px;text-decoration:underline}
+    .auth-submit{margin-top:10px;width:max-content}
+
+    .reports-wrap{padding-top:22px}
+    .report-preview{
+      width:100%;height:110px;background:#d8d8d8;border-radius:2px;margin-bottom:12px;
+      background-size:cover;background-position:center;
+    }
+    .report-caption{font-size:10px;color:#444;margin-bottom:8px}
+    .report-card{padding:12px 0;border-bottom:1px solid #eee}
+    .report-card h3{margin:0 0 6px;font-size:13px}
+    .report-meta{font-size:10px;color:#666;display:flex;justify-content:space-between;gap:8px}
+    .status{font-weight:700;color:#7a5a00}
+
+    .notice{margin-top:12px;font-size:11px;color:#2c6b2f;min-height:14px}
+    .error{color:#8a1f1f}
+
+    @media (max-width:430px){
+      body{padding:0;background:#fff}
+      .phone-shell{width:100%;height:100dvh;border-radius:0;box-shadow:none;border:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="phone-shell">
+    <header class="app-header">
+      <button class="logo-badge" data-screen-target="home" aria-label="Domů">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 11.5L12 4l9 7.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10.5V20h12v-9.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="search-pill">Search problems...</div>
+      <div class="header-actions">
+        <button class="icon-btn" aria-label="Hledat">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6" stroke-width="2"/><path d="M20 20l-4.2-4.2" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button class="icon-btn" data-screen-target="login" aria-label="Profil">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke-width="2"/><path d="M4 20c1.8-3.5 5-5 8-5s6.2 1.5 8 5" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <button class="icon-btn" data-screen-target="home" aria-label="Domů 2">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M3 11.5L12 4l9 7.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10.5V20h12v-9.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="viewport">
+      <section class="screen active" id="home" data-index="0">
+        <div class="hero-screen">
+          <h1 class="hero-title">VidimTo</h1>
+          <svg class="hero-eye" viewBox="0 0 180 120" aria-hidden="true">
+            <path d="M12 60C34 26 60 12 90 12s56 14 78 48c-22 34-48 48-78 48S34 94 12 60Z" fill="none" stroke="#111" stroke-width="5"/>
+            <path d="M78 24h24v58H78z" fill="#111"/>
+            <path d="M66 82h48L96 36 84 48 74 82z" fill="#111"/>
+            <path d="M52 82h76" stroke="#111" stroke-width="5" stroke-linecap="round"/>
+          </svg>
+          <p class="hero-text">Vy nám nahlásíte<br>My vyřešíme</p>
+          <p class="hero-sub">Našli jste poškozený majetek?</p>
+          <button class="primary-btn" data-screen-target="report">Nahlásit</button>
+        </div>
+      </section>
+
+      <section class="screen" id="report" data-index="1">
+        <div class="back-row">
+          <button class="back-btn" data-screen-target="home" aria-label="Zpět">←</button>
+          <p class="screen-title">Přidat hlášení:</p>
+        </div>
+
+        <form id="reportForm" class="form-stack">
+          <div>
+            <label class="field-label" for="reportPlace">Kde?</label>
+            <input class="input" id="reportPlace" name="place" type="text" required>
+          </div>
+          <div>
+            <label class="field-label" for="reportTitle">Název závady</label>
+            <input class="input" id="reportTitle" name="title" type="text" required>
+          </div>
+          <div>
+            <label class="field-label" for="reportDescription">Popište ji / kam vyfotíte?</label>
+            <textarea class="textarea" id="reportDescription" name="description" required></textarea>
+          </div>
+          <div>
+            <div class="field-label">Vyfoťte?</div>
+            <div class="upload-row">
+              <div class="upload-box">✉</div>
+              <label class="upload-text" for="reportPhoto">Nahraje fotografii</label>
+              <input id="reportPhoto" type="file" accept="image/*" hidden>
+            </div>
+          </div>
+          <button class="primary-btn auth-submit" type="submit">Odeslat</button>
+          <div id="reportNotice" class="notice"></div>
+        </form>
+      </section>
+
+      <section class="screen" id="list" data-index="2">
+        <div class="reports-wrap">
+          <div id="heroPreview" class="report-preview" style="background-image:url('images/report1.png')"></div>
+          <div class="report-caption">Nahlášené problémy</div>
+          <div id="reportsList"></div>
+          <button class="danger-btn" data-screen-target="report">Nahlásit další</button>
+        </div>
+      </section>
+
+      <section class="screen" id="login" data-index="3">
+        <div class="back-row">
+          <button class="back-btn" data-screen-target="home" aria-label="Zpět">←</button>
+          <p class="screen-title">Přihlášení:</p>
+        </div>
+
+        <form id="loginForm" class="form-stack">
+          <div>
+            <label class="field-label" for="loginEmail">E-mail:</label>
+            <input class="input" id="loginEmail" name="email" type="email" required>
+          </div>
+          <div>
+            <label class="field-label" for="loginPassword">Heslo:</label>
+            <input class="input" id="loginPassword" name="password" type="password" required>
+          </div>
+          <button class="primary-btn auth-submit" type="submit">Přihlásit</button>
+          <div class="auth-links">
+            <span>Nemáte přihlášení?</span>
+            <button class="link-btn" type="button" data-screen-target="register">Registrovat</button>
+          </div>
+          <div id="loginNotice" class="notice"></div>
+        </form>
+      </section>
+
+      <section class="screen" id="register" data-index="4">
+        <div class="back-row">
+          <button class="back-btn" data-screen-target="login" aria-label="Zpět">←</button>
+          <p class="screen-title">Registrace:</p>
+        </div>
+
+        <form id="registerForm" class="form-stack">
+          <div>
+            <label class="field-label" for="registerName">Uživatelské jméno:</label>
+            <input class="input" id="registerName" name="name" type="text" required>
+          </div>
+          <div>
+            <label class="field-label" for="registerEmail">E-mail:</label>
+            <input class="input" id="registerEmail" name="email" type="email" required>
+          </div>
+          <div>
+            <label class="field-label" for="registerPassword">Heslo:</label>
+            <input class="input" id="registerPassword" name="password" type="password" required>
+          </div>
+          <div>
+            <label class="field-label" for="registerPasswordAgain">Zopakujte heslo:</label>
+            <input class="input" id="registerPasswordAgain" name="passwordAgain" type="password" required>
+          </div>
+          <button class="primary-btn auth-submit" type="submit">Registrovat</button>
+          <div id="registerNotice" class="notice"></div>
+        </form>
+      </section>
+    </div>
+
+    <div class="bottom-accent"></div>
+  </div>
+
+  <script>
+    const screens = [...document.querySelectorAll('.screen')];
+    let currentScreen = document.querySelector('.screen.active');
+    let animating = false;
+
+    function openScreen(id){
+      const next = document.getElementById(id);
+      if(!next || next === currentScreen || animating) return;
+
+      const currentIndex = Number(currentScreen.dataset.index || 0);
+      const nextIndex = Number(next.dataset.index || 0);
+      const direction = nextIndex > currentIndex ? 'forward' : 'backward';
+
+      animating = true;
+      next.classList.remove('exit-left','exit-right');
+      next.style.transform = direction === 'forward' ? 'translateX(36px)' : 'translateX(-36px)';
+      next.style.opacity = '0';
+      next.classList.add('active');
+
+      requestAnimationFrame(() => {
+        currentScreen.classList.add(direction === 'forward' ? 'exit-left' : 'exit-right');
+        next.style.transform = 'translateX(0)';
+        next.style.opacity = '1';
+      });
+
+      setTimeout(() => {
+        currentScreen.classList.remove('active','exit-left','exit-right');
+        currentScreen.style.transform = '';
+        currentScreen.style.opacity = '';
+        next.style.transform = '';
+        next.style.opacity = '';
+        currentScreen = next;
+        animating = false;
+      }, 320);
+    }
+
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-screen-target]');
+      if(target){
+        openScreen(target.dataset.screenTarget);
+      }
+    });
+
+    const seedReports = [
+      { title:'Nepořádek u chodníku', place:'Slaný', status:'Nové', date:'12. 3. 2026' },
+      { title:'Rozbitá lavička', place:'Centrum', status:'V řešení', date:'12. 3. 2026' },
+      { title:'Poškozená lampa', place:'Park', status:'Přijato', date:'11. 3. 2026' }
+    ];
+
+    function getReports(){
+      const stored = JSON.parse(localStorage.getItem('vidimto_reports') || 'null');
+      if(stored && Array.isArray(stored)) return stored;
+      localStorage.setItem('vidimto_reports', JSON.stringify(seedReports));
+      return seedReports;
+    }
+
+    function renderReports(){
+      const wrap = document.getElementById('reportsList');
+      const reports = getReports();
+      wrap.innerHTML = '';
+      reports.forEach((report, index) => {
+        const item = document.createElement('article');
+        item.className = 'report-card';
+        item.innerHTML = `
+          <h3>${report.title}</h3>
+          <div class="report-meta">
+            <span>${report.place}</span>
+            <span class="status">${report.status}</span>
+          </div>
+          <div class="report-meta" style="margin-top:4px;">
+            <span>${report.date}</span>
+            <span>#${String(index + 1).padStart(3,'0')}</span>
+          </div>
+        `;
+        wrap.appendChild(item);
+      });
+    }
+
+    function showNotice(id, message, isError = false){
+      const el = document.getElementById(id);
+      el.textContent = message;
+      el.classList.toggle('error', isError);
+    }
+
+    document.getElementById('registerForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = registerName.value.trim();
+      const email = registerEmail.value.trim();
+      const password = registerPassword.value;
+      const passwordAgain = registerPasswordAgain.value;
+
+      if(!name || !email || !password || !passwordAgain){
+        showNotice('registerNotice', 'Vyplňte všechna pole.', true);
+        return;
+      }
+      if(password !== passwordAgain){
+        showNotice('registerNotice', 'Hesla se neshodují.', true);
+        return;
+      }
+      if(password.length < 4){
+        showNotice('registerNotice', 'Heslo je příliš krátké.', true);
+        return;
+      }
+
+      localStorage.setItem('vidimto_user', JSON.stringify({ name, email, password }));
+      showNotice('registerNotice', 'Registrace proběhla úspěšně.');
+      e.target.reset();
+      setTimeout(() => openScreen('login'), 500);
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = loginEmail.value.trim();
+      const password = loginPassword.value;
+      const user = JSON.parse(localStorage.getItem('vidimto_user') || 'null');
+
+      if(!user){
+        showNotice('loginNotice', 'Nejdřív se registrujte.', true);
+        return;
+      }
+      if(user.email !== email || user.password !== password){
+        showNotice('loginNotice', 'Špatný e-mail nebo heslo.', true);
+        return;
+      }
+
+      localStorage.setItem('vidimto_logged_in', '1');
+      showNotice('loginNotice', `Vítejte, ${user.name}.`);
+      e.target.reset();
+      setTimeout(() => openScreen('home'), 500);
+    });
+
+    document.getElementById('reportForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const place = reportPlace.value.trim();
+      const title = reportTitle.value.trim();
+      const description = reportDescription.value.trim();
+
+      if(!place || !title || !description){
+        showNotice('reportNotice', 'Doplňte celé hlášení.', true);
+        return;
+      }
+
+      const reports = getReports();
+      reports.unshift({
+        title,
+        place,
+        status:'Nové',
+        date:new Date().toLocaleDateString('cs-CZ')
+      });
+      localStorage.setItem('vidimto_reports', JSON.stringify(reports));
+      renderReports();
+      showNotice('reportNotice', 'Hlášení bylo odesláno.');
+      e.target.reset();
+      setTimeout(() => openScreen('list'), 500);
+    });
+
+    renderReports();
+  </script>
+</body>
+</html>
