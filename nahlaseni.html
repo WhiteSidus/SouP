@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <form action="zpracovani.php" method="post" enctype="multipart/form-data">
+            <p>Formulář</p>
+            <label for="Soubor">Fotka</label>
+            <input type="file" name="Soubor" id="Soubor" accept="image/png, image/jpg, image/jpeg" required><br><br>
+            
+            <label for="Adresa">Adresa</label>
+            <input type="text" name="Adresa" id="Adresa" required><br><br>
+            
+            <label for="Popis">Popis</label>
+            <textarea name="Popis" id="Popis" rows="3"></textarea><br><br>
+            
+            <input type="submit" value="Poslat" id="Poslat">
+        </form>
+</body>
+</html>
