@@ -212,29 +212,6 @@
         </div>
       </section>
 
-      <section class="screen" id="login" data-index="3">
-        <div class="back-row">
-          <button class="back-btn" data-screen-target="home" aria-label="Zpět">←</button>
-          <p class="screen-title">Přihlášení:</p>
-        </div>
-
-        <form id="loginForm" class="form-stack">
-          <div>
-            <label class="field-label" for="loginEmail">E-mail:</label>
-            <input class="input" id="loginEmail" name="email" type="email" required>
-          </div>
-          <div>
-            <label class="field-label" for="loginPassword">Heslo:</label>
-            <input class="input" id="loginPassword" name="password" type="password" required>
-          </div>
-          <button class="primary-btn auth-submit" type="submit">Přihlásit</button>
-          <div class="auth-links">
-            <span>Nemáte přihlášení?</span>
-            <button class="link-btn" type="button" data-screen-target="register">Registrovat</button>
-          </div>
-          <div id="loginNotice" class="notice"></div>
-        </form>
-      </section>
 
       <section class="screen" id="register" data-index="4">
         <div class="back-row">
@@ -311,39 +288,41 @@
       }
     });
 
-    const seedReports = [
-      { title:'Nepořádek u chodníku', place:'Slaný', status:'Nové', date:'12. 3. 2026' },
-      { title:'Rozbitá lavička', place:'Centrum', status:'V řešení', date:'12. 3. 2026' },
-      { title:'Poškozená lampa', place:'Park', status:'Přijato', date:'11. 3. 2026' }
-    ];
-
-    function getReports(){
-      const stored = JSON.parse(localStorage.getItem('vidimto_reports') || 'null');
-      if(stored && Array.isArray(stored)) return stored;
-      localStorage.setItem('vidimto_reports', JSON.stringify(seedReports));
-      return seedReports;
-    }
-
-    function renderReports(){
+    async function renderReports(){
       const wrap = document.getElementById('reportsList');
-      const reports = getReports();
-      wrap.innerHTML = '';
-      reports.forEach((report, index) => {
-        const item = document.createElement('article');
-        item.className = 'report-card';
-        item.innerHTML = `
-          <h3>${report.title}</h3>
-          <div class="report-meta">
-            <span>${report.place}</span>
-            <span class="status">${report.status}</span>
-          </div>
-          <div class="report-meta" style="margin-top:4px;">
-            <span>${report.date}</span>
-            <span>#${String(index + 1).padStart(3,'0')}</span>
-          </div>
-        `;
-        wrap.appendChild(item);
-      });
+      wrap.innerHTML = '<div style="font-size:11px;color:#666;text-align:center;padding:20px;">Načítám z databáze...</div>';
+      
+      try {
+        const res = await fetch('api.php?action=getReports');
+        const json = await res.json();
+        
+        if (json.status === 'success') {
+          wrap.innerHTML = '';
+          if (json.data.length === 0) {
+            wrap.innerHTML = '<div style="font-size:11px;color:#666;text-align:center;padding:20px;">Zatím žádná hlášení.</div>';
+          }
+          json.data.forEach((report, index) => {
+            const item = document.createElement('article');
+            item.className = 'report-card';
+            item.innerHTML = `
+              <h3>${report.title}</h3>
+              <div class="report-meta">
+                <span>${report.place}</span>
+                <span class="status">${report.status}</span>
+              </div>
+              <div class="report-meta" style="margin-top:4px;">
+                <span>${report.date}</span>
+                <span>#${String(json.data.length - index).padStart(3,'0')}</span>
+              </div>
+            `;
+            wrap.appendChild(item);
+          });
+        } else {
+          wrap.innerHTML = `<div style="font-size:11px;color:#8a1f1f;text-align:center;padding:20px;">${json.message}</div>`;
+        }
+      } catch (err) {
+        wrap.innerHTML = '<div style="font-size:11px;color:#8a1f1f;text-align:center;padding:20px;">Nelze se připojit k API.</div>';
+      }
     }
 
     function showNotice(id, message, isError = false){
@@ -352,7 +331,7 @@
       el.classList.toggle('error', isError);
     }
 
-    document.getElementById('registerForm').addEventListener('submit', (e) => {
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = registerName.value.trim();
       const email = registerEmail.value.trim();
@@ -372,34 +351,56 @@
         return;
       }
 
-      localStorage.setItem('vidimto_user', JSON.stringify({ name, email, password }));
-      showNotice('registerNotice', 'Registrace proběhla úspěšně.');
-      e.target.reset();
-      setTimeout(() => openScreen('login'), 500);
+      showNotice('registerNotice', 'Odesílám...', false);
+      
+      try {
+        const res = await fetch('api.php?action=register', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ name, email, password })
+        });
+        const json = await res.json();
+        
+        if (json.status === 'success') {
+          showNotice('registerNotice', json.message);
+          e.target.reset();
+          setTimeout(() => openScreen('login'), 800);
+        } else {
+          showNotice('registerNotice', json.message, true);
+        }
+      } catch (err) {
+        showNotice('registerNotice', 'Chyba připojení k serveru.', true);
+      }
     });
 
-    document.getElementById('loginForm').addEventListener('submit', (e) => {
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = loginEmail.value.trim();
       const password = loginPassword.value;
-      const user = JSON.parse(localStorage.getItem('vidimto_user') || 'null');
 
-      if(!user){
-        showNotice('loginNotice', 'Nejdřív se registrujte.', true);
-        return;
+      showNotice('loginNotice', 'Ověřuji...', false);
+      
+      try {
+        const res = await fetch('api.php?action=login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ email, password })
+        });
+        const json = await res.json();
+        
+        if (json.status === 'success') {
+          showNotice('loginNotice', json.message);
+          e.target.reset();
+          setTimeout(() => openScreen('home'), 800);
+        } else {
+          showNotice('loginNotice', json.message, true);
+        }
+      } catch (err) {
+        showNotice('loginNotice', 'Chyba připojení k serveru.', true);
       }
-      if(user.email !== email || user.password !== password){
-        showNotice('loginNotice', 'Špatný e-mail nebo heslo.', true);
-        return;
-      }
-
-      localStorage.setItem('vidimto_logged_in', '1');
-      showNotice('loginNotice', `Vítejte, ${user.name}.`);
-      e.target.reset();
-      setTimeout(() => openScreen('home'), 500);
     });
 
-    document.getElementById('reportForm').addEventListener('submit', (e) => {
+    document.getElementById('reportForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const place = reportPlace.value.trim();
       const title = reportTitle.value.trim();
@@ -410,18 +411,27 @@
         return;
       }
 
-      const reports = getReports();
-      reports.unshift({
-        title,
-        place,
-        status:'Nové',
-        date:new Date().toLocaleDateString('cs-CZ')
-      });
-      localStorage.setItem('vidimto_reports', JSON.stringify(reports));
-      renderReports();
-      showNotice('reportNotice', 'Hlášení bylo odesláno.');
-      e.target.reset();
-      setTimeout(() => openScreen('list'), 500);
+      showNotice('reportNotice', 'Odesílám do databáze...', false);
+
+      try {
+        const res = await fetch('api.php?action=report', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ place, title, description })
+        });
+        const json = await res.json();
+        
+        if (json.status === 'success') {
+          showNotice('reportNotice', json.message);
+          renderReports();
+          e.target.reset();
+          setTimeout(() => openScreen('list'), 800);
+        } else {
+          showNotice('reportNotice', json.message, true);
+        }
+      } catch (err) {
+        showNotice('reportNotice', 'Chyba připojení k serveru.', true);
+      }
     });
 
     renderReports();
